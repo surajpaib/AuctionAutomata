@@ -3,6 +3,9 @@ import logging
 
 class AuctionCreator:
     def __init__(self):
+        """
+            Variables that need values from the user
+        """
         self.K = 0
         self.N = 0
         self.R = 0
@@ -12,6 +15,10 @@ class AuctionCreator:
         
     
     def get_user_input(self):
+        """
+            Code to analyze attributes defined in the init section and get specific input from the user
+            depending on their types
+        """
         for attribute in dir(self):
             if type(getattr(self, attribute)) == int:
                 while True:
@@ -56,6 +63,12 @@ class AuctionCreator:
                 setattr(self, attribute, input_value)
 
     def create_bid_matrices(self):
+        """
+            Create and Initialize Matrices based on the user specified dimensions.
+            Seller price matrix K x R
+            Alpha Values N x K
+            Buyer price matrix N x K x R
+        """
         self.seller_price = np.random.rand(self.K, self.R) * self.Smax
         self.alpha_factors = np.random.rand(self.N, self.K) + 1 #Greater than 1
         self.buyer_price = np.zeros((self.N, self.K, self.R))
