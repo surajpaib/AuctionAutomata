@@ -1,8 +1,11 @@
 from auction_creator import AuctionCreator
 import logging
 import numpy as np 
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
 
-logging.basicConfig(level=None)
+logging.basicConfig(level=logging.INFO)
 
 class AuctionSimulator:
     def __init__(self, seller_prices, buyer_prices, auction_type):
@@ -14,7 +17,7 @@ class AuctionSimulator:
         self.number_of_rounds = self.buyer_prices.shape[2]
         self.number_of_auctions = self.buyer_prices.shape[1]
         self.auction_results = {}
-    
+        self.market_price_developments = []
         
 
 
@@ -28,19 +31,26 @@ class AuctionSimulator:
     def run_pure_auction(self):
         for round in range(self.number_of_rounds):
             self.auction_results["Round {}".format(round)] = {}
+            buyer_indices = [i for i in range(self.buyer_prices.shape[0])]
+
 
             for k in range(self.number_of_auctions):
                 self.auction_results["Round {}".format(round)]["Auction {}".format(k)] = {}
 
                 logging.info('Sk value for current auction: {}'.format(self.seller_prices[k, round]))
-                buyer_prices_for_auction = self.buyer_prices[:, k, round]
+                buyer_prices_for_auction = self.buyer_prices[buyer_indices, k, round]
+                
                 logging.info('Buyer Prices for the current auction: {}'.format(buyer_prices_for_auction))
                 market_price_for_auction = self.calculate_market_price(buyer_prices_for_auction)
+                self.market_price_developments.append([market_price_for_auction, round * self.number_of_auctions + k])
                 auction_winner = self.get_auction_winner(market_price_for_auction, buyer_prices_for_auction)
 
                 if len(auction_winner) != 0:
                     self.calculate_seller_profits(k, buyer_prices_for_auction[auction_winner[0]])
                     self.calculate_buyer_profits(auction_winner[0], market_price_for_auction, buyer_prices_for_auction[auction_winner[0]])
+                    print(buyer_indices)
+                    print(auction_winner[0])
+                    buyer_indices.pop(auction_winner[0])
                 logging.info("Buyer Profits: {}".format(self.buyer_profits))
                 logging.info("Seller Profits: {}".format(self.seller_profits))
 
@@ -90,4 +100,6 @@ if __name__ == "__main__":
     auction_simulator = AuctionSimulator(seller_prices, buyer_prices, auction_input.auction_type)
     auction_simulator.run_auctions()
     prettyprintdict(auction_simulator.auction_results)
-
+    print(auction_simulator.market_price_developments)
+    ax = sns.lineplot(x='Rounds', y='Market Price', data=pd.DataFrame(auction_simulator.market_price_developments, columns=['Market Price', 'Rounds']))
+    plt.show()
