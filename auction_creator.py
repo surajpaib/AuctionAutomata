@@ -26,7 +26,7 @@ class AuctionCreator:
                     try: 
                         input_value = int(input_value)
                         if attribute == "N":
-                            if input_value < getattr(self, 'K'):
+                            if input_value <= getattr(self, 'K'):
                                 raise ValueError('Buyer, N should be larger than sellers, K')
                         break
                     except ValueError as error:
@@ -78,7 +78,7 @@ class AuctionCreator:
             self.buyer_price[:, :, round] = self.alpha_factors * self.seller_price[:, round]
 
         return self.seller_price, self.buyer_price
-        
+    
 
 
 if __name__ == "__main__":

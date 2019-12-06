@@ -19,7 +19,7 @@ class AuctionSimulator:
         self.seller_profits = np.zeros((self.seller_prices.shape[0]))
         self.buyer_profits = np.zeros((self.buyer_prices.shape[0]))
         self.number_of_rounds = self.buyer_prices.shape[2]
-        self.number_of_auctions = self.buyer_prices.shape[1]
+        self.number_of_auctions = self.seller_prices.shape[0]
         self.auction_results = {}
         self.market_price_developments = []
         
@@ -70,14 +70,14 @@ class AuctionSimulator:
                 auction_winner = self.get_auction_winner(market_price_for_auction, buyer_prices_for_auction)
 
                 # If an auction winner exists ( i.e if there is a second highest bid below Market Price)
-                if len(auction_winner) != 0:
+            
 
-                    # Get seller profit
-                    self.calculate_seller_profits(k, buyer_prices_for_auction[auction_winner[0]])
-                    # Get buyer profit
-                    self.calculate_buyer_profits(auction_winner[0], market_price_for_auction, buyer_prices_for_auction[auction_winner[0]])
-                    # Remove buyer who wins the auction from being considered in the next auction in the same round
-                    buyer_indices.pop(auction_winner[0])
+                # Get seller profit
+                self.calculate_seller_profits(k, buyer_prices_for_auction[auction_winner])
+                # Get buyer profit
+                self.calculate_buyer_profits(auction_winner, market_price_for_auction, buyer_prices_for_auction[auction_winner])
+                # Remove buyer who wins the auction from being considered in the next auction in the same round
+                buyer_indices.pop(auction_winner)
 
                 logging.info("Buyer Profits: {}".format(self.buyer_profits))
                 logging.info("Seller Profits: {}".format(self.seller_profits))
@@ -113,10 +113,16 @@ class AuctionSimulator:
             Incase second highest element doesn't exist, first highest is selected since there is no lower bid possible. 
         """
         prices_below_market = buyers_list < market_price
-        auction_winner = np.where(buyers_list == np.partition(prices_below_market * buyers_list, -2)[-2])[0]
-        if np.shape(auction_winner) == 0:
-            auction_winner = np.argmax(prices_below_market * buyers_list)
 
+
+        if np.sum(prices_below_market) > 1:
+            auction_winner = np.where(buyers_list == np.partition(prices_below_market * buyers_list, -2)[-2])[0][0]
+
+        else:
+            print(prices_below_market)
+            print(buyers_list)
+            auction_winner = np.argmax(prices_below_market * buyers_list)
+        print(type(auction_winner))
         ## Possible case where no auction winner exists because the only single value below the market price,
         ## depends on the value of alpha
         logging.info("Auction Winner is Buyer: {}".format(auction_winner))
@@ -145,4 +151,4 @@ if __name__ == "__main__":
     prettyprintdict(auction_simulator.auction_results)
     print(auction_simulator.market_price_developments)
     ax = sns.lineplot(x='Rounds', y='Market Price', data=pd.DataFrame(auction_simulator.market_price_developments, columns=['Market Price', 'Rounds']))
-    plt.show()
+    # plt.show()
