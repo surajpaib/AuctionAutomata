@@ -77,6 +77,8 @@ class AuctionCreator:
         for round in range(number_of_rounds):
             self.buyer_price[:, :, round] = self.alpha_factors * self.seller_price[:, round]
 
+
+    
         return self.seller_price, self.buyer_price
     
 
