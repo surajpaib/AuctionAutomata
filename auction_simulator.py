@@ -7,6 +7,8 @@ import pandas as pd
 
 # Set level=None to remove display messages
 logging.basicConfig(level=logging.INFO)
+
+
 def get_participating_buyers(buyer_indices):
     buyers_list = []
     for key in buyer_indices:
@@ -32,9 +34,11 @@ class AuctionSimulator:
         self.number_of_auctions = self.seller_prices.shape[0]
         self.auction_results = {}
         self.market_price_developments = []
-        self.bid_increase_factor = np.random.rand(self.number_of_buyers) + 1 #Greater than 1
-        self.bid_decrease_factor = np.random.rand(self.number_of_buyers) #Greater than 1
-
+        self.bid_increase_factor = np.random.rand(self.number_of_buyers) * 0.1 + 1 #Greater than 1
+        self.bid_decrease_factor = 1 - np.random.rand(self.number_of_buyers) * 0.1  #Lower than 1
+        # print(self.bid_decrease_factor)
+        # print(self.bid_increase_factor)
+        # exit()
 
     def run_auctions(self):
         """
@@ -56,10 +60,14 @@ class AuctionSimulator:
         # Iterate over all rounds ( R )
         for round_number in range(self.number_of_rounds):
             self.auction_results["Round {}".format(round_number)] = {}
+
+            # Bid increase or bid decrease for buyers based on win or above market price condition.
+            if round_number > 0:
+                self.adapt_bidding_strategy(buyer_indices, round_number)
             
             # List of all buyers at the beginning of each round_number
 
-            buyer_indices = dict.fromkeys([i for i in range(self.buyer_prices.shape[0])], {'participating': True, 'increase_bid': True})
+            buyer_indices = dict.fromkeys([i for i in range(self.buyer_prices.shape[0])], {'participating': True, 'bid_increase_sellers': [], 'bid_decrease_sellers': []})
 
             # Iterate over number of auctions which is the number of sellers as defined in the init function (same as K)
             for k in range(self.number_of_auctions):
@@ -71,37 +79,75 @@ class AuctionSimulator:
 
                 # Fetch Participating Buyers from Dict
                 participating_buyers = get_participating_buyers(buyer_indices)
-
+                print("Participating: ", participating_buyers)
                 # Get buyer prices for k in K and r in R and for existing buyer indices
-                print(buyer_indices)
-                buyer_prices_for_auction = self.buyer_prices[participating_buyers, k, round_number]
+                self.buyer_prices_for_auction = self.buyer_prices[participating_buyers, k, round_number]
                 
-                logging.info('Buyer Prices for the current auction: {}'.format(buyer_prices_for_auction))
+                logging.info('Buyer Prices for the current auction: {}'.format(self.buyer_prices_for_auction))
 
                 # Calculate Market Price
-                market_price_for_auction = self.calculate_market_price(buyer_prices_for_auction)
+                self.market_price_for_auction = self.calculate_market_price(self.buyer_prices_for_auction)
                 
                 # Append to list to display later
-                self.market_price_developments.append([market_price_for_auction, round_number * self.number_of_auctions + k])
+                self.market_price_developments.append([self.market_price_for_auction, round_number * self.number_of_auctions + k])
                 
                 # Determine Auction Winner
-                auction_winner_index = self.get_auction_winner(market_price_for_auction, buyer_prices_for_auction)            
-                auction_winner = buyer_indices[auction_winner_index]
-                # Get seller profit
-                self.calculate_seller_profits(k, buyer_prices_for_auction[auction_winner_index])
-                # Get buyer profit
-                self.calculate_buyer_profits(auction_winner_index, market_price_for_auction, buyer_prices_for_auction[auction_winner_index])
-                # Remove buyer who wins the auction from being considered in the next auction in the same round and decrease their bid. 
-                auction_winner = {'participating': False, 'increase_bid': False}
+                self.participating_buyers_index = self.get_auction_winner(self.market_price_for_auction, self.buyer_prices_for_auction)
+                self.auction_winner_index = participating_buyers[self.participating_buyers_index]
 
+                # Get seller profit
+                self.calculate_seller_profits(k, self.buyer_prices_for_auction[self.participating_buyers_index])
+                # Get buyer profit
+                self.calculate_buyer_profits(self.auction_winner_index, self.market_price_for_auction, self.buyer_prices_for_auction[self.participating_buyers_index])
+                # Remove buyer who wins the auction from being considered in the next auction in the same round and decrease their bid. 
+                buyer_indices = self.set_bidding_strategy(buyer_indices, k)
+                print("Updated Buyers: ", buyer_indices)
+                logging.info("Auction Winner is Buyer: {}".format(self.auction_winner_index))
 
                 logging.info("Buyer Profits: {}".format(self.buyer_profits))
                 logging.info("Seller Profits: {}".format(self.seller_profits))
 
-                self.auction_results["Round {}".format(round_number)]["Auction {}".format(k)]["Winner"] = auction_winner_index
-                self.auction_results["Round {}".format(round_number)]["Auction {}".format(k)]["Market Price"] = market_price_for_auction
+                self.auction_results["Round {}".format(round_number)]["Auction {}".format(k)]["Winner"] = self.auction_winner_index
+                self.auction_results["Round {}".format(round_number)]["Auction {}".format(k)]["Market Price"] = self.market_price_for_auction
                 self.auction_results["Round {}".format(round_number)]["Auction {}".format(k)]["Buyer Profits"] = self.buyer_profits
                 self.auction_results["Round {}".format(round_number)]["Auction {}".format(k)]["Seller Profits"] = self.seller_profits
+
+    
+
+    def set_bidding_strategy(self, buyer_indices, k):
+        """
+        Sets the buyers increase_bid flag based on winning an auction or bidding above market price
+        """
+
+        
+        buyer_indices[self.auction_winner_index] =  {'participating': False, 'bid_increase_sellers': buyer_indices[self.auction_winner_index]['bid_increase_sellers'] , 'bid_decrease_sellers': buyer_indices[self.auction_winner_index]['bid_decrease_sellers']+ [k]}
+        
+        for index in np.where(self.buyer_prices_for_auction >= self.market_price_for_auction)[0]:
+            if buyer_indices[index]['participating'] == True:
+
+                buyer_indices[index] =  {'participating': True, 'bid_increase_sellers': buyer_indices[index]['bid_increase_sellers'] , 'bid_decrease_sellers': buyer_indices[index]['bid_decrease_sellers']+ [k]}
+            
+        for index in np.where(self.buyer_prices_for_auction < self.market_price_for_auction)[0]:
+            if buyer_indices[index]['participating'] == True:
+                buyer_indices[index] =  {'participating': True, 'bid_increase_sellers': buyer_indices[index]['bid_increase_sellers']+ [k], 'bid_decrease_sellers': buyer_indices[index]['bid_decrease_sellers'] }
+            
+        return buyer_indices
+        
+
+    def adapt_bidding_strategy(self, buyer_indices, round_number):
+        print("Adapting Bidding Strategy ...")
+        for key in buyer_indices:
+            buyer = buyer_indices[key]
+            for k in buyer['bid_increase_sellers']:
+                print(key, " for seller", k, "bid increased from: ", self.buyer_prices[key, k, round_number], " to: ", self.buyer_prices[key, k, round_number]  * self.bid_increase_factor[key] )
+
+                self.buyer_prices[key, k, round_number] = self.buyer_prices[key, k, round_number]  * self.bid_increase_factor[key] 
+
+            for k in buyer['bid_decrease_sellers']:
+                print(key, " for seller", k, "bid decreased from: ", self.buyer_prices[key, k, round_number], " to: ", self.buyer_prices[key, k, round_number]  * self.bid_decrease_factor[key] )
+
+                self.buyer_prices[key, k, round_number] = self.buyer_prices[key, k, round_number]  * self.bid_decrease_factor[key] 
+
 
     def calculate_market_price(self, prices):
         """
@@ -139,7 +185,6 @@ class AuctionSimulator:
             auction_winner = np.argmax(prices_below_market * buyers_list)
         ## Possible case where no auction winner exists because the only single value below the market price,
         ## depends on the value of alpha
-        logging.info("Auction Winner is Buyer: {}".format(auction_winner))
         return auction_winner
 
 
@@ -162,7 +207,7 @@ if __name__ == "__main__":
     seller_prices, buyer_prices = auction_input.create_bid_matrices()  
     auction_simulator = AuctionSimulator(seller_prices, buyer_prices, auction_input.auction_type)
     auction_simulator.run_auctions()
-    prettyprintdict(auction_simulator.auction_results)
-    print(auction_simulator.market_price_developments)
+    # prettyprintdict(auction_simulator.auction_results)
+    # print(auction_simulator.market_price_developments)
     ax = sns.lineplot(x='Rounds', y='Market Price', data=pd.DataFrame(auction_simulator.market_price_developments, columns=['Market Price', 'Rounds']))
     # plt.show()
