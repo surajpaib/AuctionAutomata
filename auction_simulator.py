@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
+from copy import deepcopy
 sns.set()
 # Set level=None to remove display messages
 logging.basicConfig(level=logging.INFO)
@@ -42,7 +43,62 @@ class AuctionSimulator:
             self.run_levelled_commitment_auction()
 
     def run_levelled_commitment_auction(self):
-        pass
+
+        for round_number in range(self.number_of_rounds):
+            self.auction_results["Round {}".format(round_number)] = {}
+
+            self.commited_buyer_bids = np.zeros((self.number_of_buyers, self.number_of_auctions), dtype=bool)
+            
+
+            self.buyer_prices[:, :, round_number] = self.alpha_factors * self.seller_prices[:, round_number]
+            # List of all buyers at the beginning of each round_number
+            buyer_indices = [i for i in range(self.buyer_prices.shape[0])]
+            # buyer_indices_for_round = deepcopy(buyer_indices)
+            for k in range(self.number_of_auctions):
+
+                self.auction_results["Round {}".format(round_number)]["Auction {}".format(k)] = {}
+
+                logging.info('Sk value for current auction: {}'.format(self.seller_prices[k, round_number]))
+                logging.info('Alpha Values for current auction: {}'.format(self.alpha_factors[:, k]))
+                # Get buyer prices for k in K and r in R and for existing buyer indices
+                buyer_prices_for_auction = self.buyer_prices[buyer_indices, k, round_number]
+                logging.info("Alpha Factors for the buyers: {}".format(self.alpha_factors))
+                logging.info('Buyer Prices for the current auction: {}'.format(buyer_prices_for_auction))
+
+                # Calculate Market Price
+                market_price_for_auction = self.calculate_market_price(buyer_prices_for_auction)
+                
+                # Append to list to display later
+                self.market_price_developments.append([market_price_for_auction, round_number * self.number_of_auctions + k])
+                # Determine Auction Winner
+                auction_winner_index = self.get_auction_winner(market_price_for_auction, buyer_prices_for_auction)
+                auction_winner = buyer_indices[auction_winner_index]
+
+
+                previous_auctions_won = np.where(self.commited_buyer_bids[auction_winner] == True)
+                logging.info("Auction Winner is Buyer: {}".format(auction_winner))     
+
+                if len(previous_auctions_won) < 0:
+                    pass
+
+                # Get seller profit
+                self.calculate_seller_profits(k, buyer_prices_for_auction[auction_winner_index])
+                # Get buyer profit
+                self.calculate_buyer_profits(auction_winner, market_price_for_auction, buyer_prices_for_auction[auction_winner_index])
+                # Remove buyer who wins the auction from being considered in the next auction in the same round
+
+                logging.info("Buyer Profits: {}".format(self.buyer_profits))
+                logging.info("Seller Profits: {}".format(self.seller_profits))
+
+                self.auction_results["Round {}".format(round_number)]["Auction {}".format(k)]["Winner"] = auction_winner
+                self.auction_results["Round {}".format(round_number)]["Auction {}".format(k)]["Market Price"] = market_price_for_auction
+                self.auction_results["Round {}".format(round_number)]["Auction {}".format(k)]["Buyer Profits"] = self.buyer_profits
+                self.auction_results["Round {}".format(round_number)]["Auction {}".format(k)]["Seller Profits"] = self.seller_profits
+
+
+                self.adapt_alpha_factors(market_price_for_auction, buyer_prices_for_auction, buyer_indices, auction_winner, k)
+                
+                self.commited_buyer_bids[auction_winner, k] = True
         
     def run_pure_auction(self):
         """
@@ -82,9 +138,9 @@ class AuctionSimulator:
                 logging.info("Auction Winner is Buyer: {}".format(auction_winner))     
 
                 # Get seller profit
-                self.calculate_seller_profits(k, buyer_prices_for_auction[auction_winner_index])
+                self.calculate_seller_profits(k, buyer_prices_for_auction, auction_winner_index)
                 # Get buyer profit
-                self.calculate_buyer_profits(auction_winner, market_price_for_auction, buyer_prices_for_auction[auction_winner_index])
+                self.calculate_buyer_profits(auction_winner, market_price_for_auction, buyer_prices_for_auction, auction_winner_index)
                 # Remove buyer who wins the auction from being considered in the next auction in the same round
 
                 logging.info("Buyer Profits: {}".format(self.buyer_profits))
@@ -117,17 +173,35 @@ class AuctionSimulator:
         logging.info("Market Price for current auction: {}".format(market_price))
         return market_price
 
-    def calculate_seller_profits(self, seller, profits):
+    def calculate_seller_profits(self, seller, buyer_prices, auction_winner_index):
         """
             Add current auction profits to array of profits for a particular seller
         """
-        self.seller_profits[seller] += profits
+        second_winning_bid = buyer_prices < buyer_prices[auction_winner_index]
 
-    def calculate_buyer_profits(self, buyer, market_price, profits):
+        if np.sum(second_winning_bid) >= 1:
+            winning_bid = np.max(buyer_prices * second_winning_bid)
+
+        else:
+            winning_bid = buyer_prices[auction_winner_index]
+
+
+        self.seller_profits[seller] += winning_bid
+
+    def calculate_buyer_profits(self, buyer, market_price, buyer_prices, auction_winner_index):
         """
             Add current auction profits to array of profits for a particular buyer
         """
-        self.buyer_profits[buyer] += market_price - profits
+        second_winning_bid = buyer_prices < buyer_prices[auction_winner_index]
+        print(second_winning_bid)
+
+        if np.sum(second_winning_bid) >= 1:
+            winning_bid = np.max(buyer_prices * second_winning_bid)
+
+        else:
+            winning_bid = buyer_prices[auction_winner_index]
+
+        self.buyer_profits[buyer] += market_price - winning_bid
 
     def get_auction_winner(self, market_price, buyers_list):
         """
@@ -136,12 +210,7 @@ class AuctionSimulator:
         """
         prices_below_market = buyers_list < market_price
 
-
-        if np.sum(prices_below_market) > 1:
-            auction_winner = np.where(buyers_list == np.partition(prices_below_market * buyers_list, -2)[-2])[0][0]
-
-        else:
-            auction_winner = np.argmax(prices_below_market * buyers_list)
+        auction_winner = np.argmax(prices_below_market * buyers_list)
      
         return auction_winner
 
