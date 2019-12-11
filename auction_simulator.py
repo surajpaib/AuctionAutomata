@@ -108,6 +108,7 @@ class AuctionSimulator:
   
         for round_number in range(self.number_of_rounds):
             self.auction_results["Round {}".format(round_number)] = {}
+            self.alpha_factors[self.alpha_factors < 1.0] = 1.0
             self.buyer_prices[:, :, round_number] = self.alpha_factors * self.seller_prices[:, round_number]
             # List of all buyers at the beginning of each round_number
             buyer_indices = [i for i in range(self.buyer_prices.shape[0])]
@@ -161,6 +162,7 @@ class AuctionSimulator:
         buyers_above_market_price = [buyer_indices[i] for i in np.where(buyer_prices_for_auction >= market_price_for_auction)[0]]
         buyers_decrease_bid = buyers_above_market_price + [auction_winner]
         buyers_increase_bid =  list(set(buyer_indices) - set(buyers_decrease_bid))
+        print(self.bid_decrease_factor[buyers_decrease_bid] * self.alpha_factors[buyers_decrease_bid, k])
         self.alpha_factors[buyers_decrease_bid, k] = self.bid_decrease_factor[buyers_decrease_bid] * self.alpha_factors[buyers_decrease_bid, k]
         self.alpha_factors[buyers_increase_bid, k] = self.bid_increase_factor[buyers_increase_bid] * self.alpha_factors[buyers_increase_bid, k]
 
@@ -193,7 +195,6 @@ class AuctionSimulator:
             Add current auction profits to array of profits for a particular buyer
         """
         second_winning_bid = buyer_prices < buyer_prices[auction_winner_index]
-        print(second_winning_bid)
 
         if np.sum(second_winning_bid) >= 1:
             winning_bid = np.max(buyer_prices * second_winning_bid)
