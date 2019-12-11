@@ -9,6 +9,17 @@ sns.set()
 # Set level=None to remove display messages
 logging.basicConfig(level=logging.INFO)
 
+
+def get_participating_buyers(buyer_indices):
+    buyers_list = []
+    for key in buyer_indices:
+        buyer = buyer_indices[key]
+        if buyer['participating']:
+            buyers_list.append(key)
+
+    return buyers_list
+
+
 class AuctionSimulator:
     def __init__(self, seller_prices, buyer_prices, alpha_factors, auction_type):
         """
@@ -21,7 +32,6 @@ class AuctionSimulator:
 
         self.seller_profits = np.zeros((self.seller_prices.shape[0]))
         self.buyer_profits = np.zeros((self.buyer_prices.shape[0]))
-
         self.number_of_buyers = self.buyer_prices.shape[0]
         self.number_of_rounds = self.buyer_prices.shape[2]
         self.number_of_auctions = self.seller_prices.shape[0]
@@ -48,7 +58,7 @@ class AuctionSimulator:
             Runs pure auction
         """
 
-        # Iterate over all rounds ( R )
+  
         for round_number in range(self.number_of_rounds):
             self.auction_results["Round {}".format(round_number)] = {}
             self.buyer_prices[:, :, round_number] = self.alpha_factors * self.seller_prices[:, round_number]
@@ -65,13 +75,12 @@ class AuctionSimulator:
                 logging.info('Sk value for current auction: {}'.format(self.seller_prices[k, round_number]))
                 logging.info('Alpha Values for current auction: {}'.format(self.alpha_factors[:, k]))
                 # Get buyer prices for k in K and r in R and for existing buyer indices
-                # Buyer indices are reduced when one buyer wins an auction
-                buyer_prices_for_auction = self.buyer_prices[buyer_indices, k, round_number]
-                
-                logging.info('Buyer Prices for the current auction: {}'.format(buyer_prices_for_auction))
+                self.buyer_prices_for_auction = self.buyer_prices[participating_buyers, k, round_number]
+                logging.info("Alpha Factors for the buyers: {}".format(self.alpha_factors))
+                logging.info('Buyer Prices for the current auction: {}'.format(self.buyer_prices_for_auction))
 
                 # Calculate Market Price
-                market_price_for_auction = self.calculate_market_price(buyer_prices_for_auction)
+                self.market_price_for_auction = self.calculate_market_price(self.buyer_prices_for_auction)
                 
                 # Append to list to display later
                 self.market_price_developments.append([market_price_for_auction, round_number * self.number_of_auctions + k])
@@ -90,8 +99,8 @@ class AuctionSimulator:
                 logging.info("Buyer Profits: {}".format(self.buyer_profits))
                 logging.info("Seller Profits: {}".format(self.seller_profits))
 
-                self.auction_results["Round {}".format(round_number)]["Auction {}".format(k)]["Winner"] = auction_winner
-                self.auction_results["Round {}".format(round_number)]["Auction {}".format(k)]["Market Price"] = market_price_for_auction
+                self.auction_results["Round {}".format(round_number)]["Auction {}".format(k)]["Winner"] = self.auction_winner_index
+                self.auction_results["Round {}".format(round_number)]["Auction {}".format(k)]["Market Price"] = self.market_price_for_auction
                 self.auction_results["Round {}".format(round_number)]["Auction {}".format(k)]["Buyer Profits"] = self.buyer_profits
                 self.auction_results["Round {}".format(round_number)]["Auction {}".format(k)]["Seller Profits"] = self.seller_profits
 
