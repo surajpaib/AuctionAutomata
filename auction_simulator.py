@@ -39,9 +39,10 @@ class AuctionSimulator:
         if self.auction_type == 0:
             self.run_pure_auction()
         else:
-            # Levelled Commitment auction goes here
-            raise NotImplementedError()
+            self.run_levelled_commitment_auction()
 
+    def run_levelled_commitment_auction(self):
+        pass
         
     def run_pure_auction(self):
         """
@@ -65,12 +66,12 @@ class AuctionSimulator:
                 logging.info('Sk value for current auction: {}'.format(self.seller_prices[k, round_number]))
                 logging.info('Alpha Values for current auction: {}'.format(self.alpha_factors[:, k]))
                 # Get buyer prices for k in K and r in R and for existing buyer indices
-                self.buyer_prices_for_auction = self.buyer_prices[participating_buyers, k, round_number]
+                buyer_prices_for_auction = self.buyer_prices[buyer_indices, k, round_number]
                 logging.info("Alpha Factors for the buyers: {}".format(self.alpha_factors))
-                logging.info('Buyer Prices for the current auction: {}'.format(self.buyer_prices_for_auction))
+                logging.info('Buyer Prices for the current auction: {}'.format(buyer_prices_for_auction))
 
                 # Calculate Market Price
-                self.market_price_for_auction = self.calculate_market_price(self.buyer_prices_for_auction)
+                market_price_for_auction = self.calculate_market_price(buyer_prices_for_auction)
                 
                 # Append to list to display later
                 self.market_price_developments.append([market_price_for_auction, round_number * self.number_of_auctions + k])
@@ -89,8 +90,8 @@ class AuctionSimulator:
                 logging.info("Buyer Profits: {}".format(self.buyer_profits))
                 logging.info("Seller Profits: {}".format(self.seller_profits))
 
-                self.auction_results["Round {}".format(round_number)]["Auction {}".format(k)]["Winner"] = self.auction_winner_index
-                self.auction_results["Round {}".format(round_number)]["Auction {}".format(k)]["Market Price"] = self.market_price_for_auction
+                self.auction_results["Round {}".format(round_number)]["Auction {}".format(k)]["Winner"] = auction_winner
+                self.auction_results["Round {}".format(round_number)]["Auction {}".format(k)]["Market Price"] = market_price_for_auction
                 self.auction_results["Round {}".format(round_number)]["Auction {}".format(k)]["Buyer Profits"] = self.buyer_profits
                 self.auction_results["Round {}".format(round_number)]["Auction {}".format(k)]["Seller Profits"] = self.seller_profits
 
@@ -170,8 +171,9 @@ if __name__ == "__main__":
 
     price_variance = []
 
-    for rounds in range(auction_simulator.number_of_rounds):
-        for sellers in range(auction_simulator.number_of_auctions):
+    for sellers in range(auction_simulator.number_of_auctions):
+        for rounds in range(auction_simulator.number_of_rounds):
+
             price_variance.append([np.var(auction_simulator.buyer_prices[:, sellers, rounds]), rounds, sellers])
     
     plt.figure()
