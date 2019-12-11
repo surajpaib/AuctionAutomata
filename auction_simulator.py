@@ -4,20 +4,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
-from copy import deepcopy
 sns.set()
 # Set level=None to remove display messages
 logging.basicConfig(level=logging.INFO)
 
-
-def get_participating_buyers(buyer_indices):
-    buyers_list = []
-    for key in buyer_indices:
-        buyer = buyer_indices[key]
-        if buyer['participating']:
-            buyers_list.append(key)
-
-    return buyers_list
 
 
 class AuctionSimulator:
