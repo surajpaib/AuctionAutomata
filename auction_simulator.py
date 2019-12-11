@@ -20,13 +20,15 @@ def get_participating_buyers(buyer_indices):
 
 
 class AuctionSimulator:
-    def __init__(self, seller_prices, buyer_prices, auction_type):
+    def __init__(self, seller_prices, buyer_prices, alpha_factors, auction_type):
         """
             Create seller profits/ buyer profits array and define other variables 
         """
         self.auction_type = auction_type
         self.seller_prices = seller_prices
         self.buyer_prices = buyer_prices
+        self.alpha_factors = alpha_factors
+
         self.seller_profits = np.zeros((self.seller_prices.shape[0]))
         self.buyer_profits = np.zeros((self.buyer_prices.shape[0]))
         self.number_of_buyers = self.buyer_prices.shape[0]
@@ -56,11 +58,10 @@ class AuctionSimulator:
             Runs pure auction
         """
 
-
-        # Iterate over all rounds ( R )
+  
         for round_number in range(self.number_of_rounds):
             self.auction_results["Round {}".format(round_number)] = {}
-
+            self.buyer_prices[:, :, round_number] = self.alpha_factors * self.seller_prices[:, round_number]
             # Bid increase or bid decrease for buyers based on win or above market price condition.
             if round_number > 0:
                 self.adapt_bidding_strategy(buyer_indices, round_number)
@@ -82,7 +83,7 @@ class AuctionSimulator:
                 print("Participating: ", participating_buyers)
                 # Get buyer prices for k in K and r in R and for existing buyer indices
                 self.buyer_prices_for_auction = self.buyer_prices[participating_buyers, k, round_number]
-                
+                logging.info("Alpha Factors for the buyers: {}".format(self.alpha_factors))
                 logging.info('Buyer Prices for the current auction: {}'.format(self.buyer_prices_for_auction))
 
                 # Calculate Market Price
@@ -139,14 +140,10 @@ class AuctionSimulator:
         for key in buyer_indices:
             buyer = buyer_indices[key]
             for k in buyer['bid_increase_sellers']:
-                print(key, " for seller", k, "bid increased from: ", self.buyer_prices[key, k, round_number], " to: ", self.buyer_prices[key, k, round_number]  * self.bid_increase_factor[key] )
-
-                self.buyer_prices[key, k, round_number] = self.buyer_prices[key, k, round_number]  * self.bid_increase_factor[key] 
+                self.alpha_factors[key, k] = self.alpha_factors[key, k]  * self.bid_increase_factor[key] 
 
             for k in buyer['bid_decrease_sellers']:
-                print(key, " for seller", k, "bid decreased from: ", self.buyer_prices[key, k, round_number], " to: ", self.buyer_prices[key, k, round_number]  * self.bid_decrease_factor[key] )
-
-                self.buyer_prices[key, k, round_number] = self.buyer_prices[key, k, round_number]  * self.bid_decrease_factor[key] 
+                self.alpha_factors[key, k] =  self.alpha_factors[key, k]  * self.bid_decrease_factor[key] 
 
 
     def calculate_market_price(self, prices):
@@ -204,8 +201,8 @@ def prettyprintdict(dictionary):
 if __name__ == "__main__":
     auction_input = AuctionCreator()
     auction_input.get_user_input()  
-    seller_prices, buyer_prices = auction_input.create_bid_matrices()  
-    auction_simulator = AuctionSimulator(seller_prices, buyer_prices, auction_input.auction_type)
+    seller_prices, buyer_prices, alpha_factors = auction_input.create_bid_matrices()  
+    auction_simulator = AuctionSimulator(seller_prices, buyer_prices, alpha_factors, auction_input.auction_type)
     auction_simulator.run_auctions()
     # prettyprintdict(auction_simulator.auction_results)
     # print(auction_simulator.market_price_developments)

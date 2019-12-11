@@ -70,16 +70,16 @@ class AuctionCreator:
             Buyer price matrix N x K x R
         """
         self.seller_price = np.random.rand(self.K, self.R) * self.Smax
-        self.alpha_factors = np.random.rand(self.N, self.K) + 1 #Greater than 1
+        self.alpha_factors = np.random.rand(self.N, self.K) * 0.1 + 1 #Greater than 1
         self.buyer_price = np.zeros((self.N, self.K, self.R))
         
         number_of_rounds = self.seller_price.shape[1]
-        for round in range(number_of_rounds):
-            self.buyer_price[:, :, round] = self.alpha_factors * self.seller_price[:, round]
+        # for round in range(number_of_rounds):
+        #     self.buyer_price[:, :, round] = self.alpha_factors * self.seller_price[:, round]
 
 
     
-        return self.seller_price, self.buyer_price
+        return self.seller_price, self.buyer_price, self.alpha_factors
     
 
 
