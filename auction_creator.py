@@ -74,10 +74,10 @@ class AuctionCreator:
         self.buyer_price = np.zeros((self.N, self.K, self.R))
         
         number_of_rounds = self.seller_price.shape[1]
-        for round in range(number_of_rounds):
-            self.buyer_price[:, :, round] = self.alpha_factors * self.seller_price[:, round]
+        # for round in range(number_of_rounds):
+        #     self.buyer_price[:, :, round] = self.alpha_factors * self.seller_price[:, round]
 
-        return self.seller_price, self.buyer_price
+        return self.seller_price, self.buyer_price, self.alpha_factors
     
 
 
