@@ -4,8 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
-from copy import deepcopy
 sns.set()
+
 # Set level=None to remove display messages
 logging.basicConfig(level=logging.INFO)
 
@@ -56,6 +56,9 @@ class AuctionSimulator:
             # Buyer and Seller Profits for the Round
             buyer_profits = np.zeros((self.number_of_buyers, self.number_of_auctions))
             seller_profits = np.zeros(self.number_of_auctions)
+
+            # Buyer profits including annuled auctions
+            total_buyer_profits =  np.zeros((self.number_of_buyers, self.number_of_auctions))
             
             # Buyer prices for the round adapted with alpha factors
             self.buyer_prices[:, :, round_number] = self.alpha_factors * self.seller_prices[:, round_number]
@@ -106,11 +109,11 @@ class AuctionSimulator:
                 for buyer_index, x in previous_auctions_won:
                     if buyer_index == auction_winner:
                         # If the buyer makes a better profit on this auction compared to the previous won auction then it is more profitable for the buyer, the bid includes the penalty and the profit
-                        if buyer_profits[auction_winner, k] - self.epsilon *  self.buyer_prices[buyer_index, x, round_number] > buyer_profits[auction_winner, x]:
+                        if buyer_profits[auction_winner, k]  > buyer_profits[auction_winner, x]:
                             self.commited_buyer_bids[auction_winner, x] = False
 
                             # Buyer profits for this auction involve a penalty to be paid for annuling the x auction.
-                            buyer_profits[auction_winner, k] -= self.epsilon *  self.buyer_prices[buyer_index, x, round_number]
+                            total_buyer_profits[auction_winner, k] = buyer_profits[auction_winner, k] - self.epsilon *  self.buyer_prices[buyer_index, x, round_number]
 
                             # Seller profits for the annuled round is the penalty.
                             seller_profits[x] = self.epsilon *  self.buyer_prices[buyer_index, x, round_number]
@@ -123,7 +126,7 @@ class AuctionSimulator:
             for x, auction_winner in np.argwhere(self.commited_buyer_bids.T):
                 logging.info("Auction Winner is Buyer: {}".format(auction_winner))   
                 # Buyer profits consider only auction winners for non-annuled rounds  
-                self.buyer_profits += buyer_profits[auction_winner, x]
+                self.buyer_profits += total_buyer_profits[auction_winner, x] 
 
                 buyer_prices_for_auction = self.buyer_prices[:, x, round_number]
                 market_price_for_auction = self.calculate_market_price(buyer_prices_for_auction)
@@ -152,8 +155,6 @@ class AuctionSimulator:
             self.buyer_prices[:, :, round_number] = self.alpha_factors * self.seller_prices[:, round_number]
             # List of all buyers at the beginning of each round_number
             buyer_indices = [i for i in range(self.buyer_prices.shape[0])]
-            # buyer_indices_for_round = deepcopy(buyer_indices)
-
 
             # Iterate over number of auctions which is the number of sellers as defined in the init function (same as K)
             for k in range(self.number_of_auctions):
