@@ -62,6 +62,7 @@ class AuctionSimulator:
             
             # Buyer prices for the round adapted with alpha factors
             self.buyer_prices[:, :, round_number] = self.alpha_factors * self.seller_prices[:, round_number]
+            buyer_indices = [i for i in range(self.buyer_prices.shape[0])]
 
 
             for k in range(self.number_of_auctions):
@@ -80,9 +81,11 @@ class AuctionSimulator:
                 # Set new bids based on the bidding strategy for buyers that have won previous auctions considering the deducted penalty and profit from previous auction.
                 for buyer_index, x in previous_auctions_won:
                     buyer_prices_for_auction[buyer_index] =  self.buyer_prices[buyer_index, k, round_number] - buyer_profits[buyer_index, x] - self.epsilon * self.buyer_prices[buyer_index, x, round_number]
-
-    
+                    if buyer_prices_for_auction[buyer_index] < self.seller_prices[k, round_number]:
+                        buyer_indices.pop(buyer_index)
                 
+                buyer_prices_for_auction = self.buyer_prices[buyer_indices, k, round_number]
+
                 logging.info("Alpha Factors for the buyers: {}".format(self.alpha_factors))
                 logging.info('Buyer Prices for the current auction: {}'.format(buyer_prices_for_auction))
 
@@ -93,15 +96,19 @@ class AuctionSimulator:
                 self.market_price_developments.append([market_price_for_auction, round_number * self.number_of_auctions + k])
                
                 # Determine Auction Winner
-                auction_winner = self.get_auction_winner(market_price_for_auction, buyer_prices_for_auction)
+                auction_winner_index = self.get_auction_winner(market_price_for_auction, buyer_prices_for_auction)
+                auction_winner = buyer_indices[auction_winner_index]
+                logging.info("Auction Winner is Buyer: {}".format(auction_winner))   
+
                 # Set auction winner in the commited bids
                 self.commited_buyer_bids[auction_winner, k] = True
 
 
                 # Update Buyer Profits for this auction; Not sure if this should have the penalty included because the bid already considers the penalty?
-                winning_bid =  self.get_winning_bid(buyer_prices_for_auction, auction_winner)
+                winning_bid =  self.get_winning_bid(buyer_prices_for_auction, auction_winner_index)
                 buyer_profits[auction_winner, k] = market_price_for_auction - winning_bid
 
+                logging.info('Buyer Profits for Auction: ( May get annuled later): {}'.format(buyer_profits))
                 # Update seller profits for this auction
                 seller_profits[k] = winning_bid
 
@@ -120,13 +127,13 @@ class AuctionSimulator:
 
 
             # Sum seller profits across all rounds
-            self.seller_profits += seller_profits
+            self.seller_profits += seller_profits 
 
             # The commited buyer bids is transposed to obtain auction winners across each round x-> round
             for x, auction_winner in np.argwhere(self.commited_buyer_bids.T):
                 logging.info("Auction Winner is Buyer: {}".format(auction_winner))   
                 # Buyer profits consider only auction winners for non-annuled rounds  
-                self.buyer_profits += total_buyer_profits[auction_winner, x] 
+                self.buyer_profits[auction_winner] += total_buyer_profits[auction_winner, x] 
 
                 buyer_prices_for_auction = self.buyer_prices[:, x, round_number]
                 market_price_for_auction = self.calculate_market_price(buyer_prices_for_auction)
