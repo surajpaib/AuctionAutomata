@@ -62,10 +62,10 @@ class AuctionSimulator:
             
             # Buyer prices for the round adapted with alpha factors
             self.buyer_prices[:, :, round_number] = self.alpha_factors * self.seller_prices[:, round_number]
-            buyer_indices = [i for i in range(self.buyer_prices.shape[0])]
 
 
             for k in range(self.number_of_auctions):
+                buyer_indices = [i for i in range(self.buyer_prices.shape[0])]
 
                 self.auction_results["Round {}".format(round_number)]["Auction {}".format(k)] = {}
 
@@ -81,7 +81,7 @@ class AuctionSimulator:
                 # Set new bids based on the bidding strategy for buyers that have won previous auctions considering the deducted penalty and profit from previous auction.
                 for buyer_index, x in previous_auctions_won:
                     buyer_prices_for_auction[buyer_index] =  self.buyer_prices[buyer_index, k, round_number] - buyer_profits[buyer_index, x] - self.epsilon * self.buyer_prices[buyer_index, x, round_number]
-                    if buyer_prices_for_auction[buyer_index] < self.seller_prices[k, round_number] and buyer_index in buyer_indices:
+                    if buyer_prices_for_auction[buyer_index] < self.seller_prices[k, round_number]:
                         buyer_indices.remove(buyer_index)
                 
                 buyer_prices_for_auction = self.buyer_prices[buyer_indices, k, round_number]
