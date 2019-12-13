@@ -111,7 +111,7 @@ class AuctionSimulator:
                 logging.info('Buyer Profits for Auction: ( May get annuled later): {}'.format(buyer_profits))
                 # Update seller profits for this auction
                 seller_profits[k] = winning_bid
-
+                total_buyer_profits[auction_winner, k] = buyer_profits[auction_winner, k]
                 # Annuling an auction, check for all previous won auctions for the buyer
                 for buyer_index, x in previous_auctions_won:
                     if buyer_index == auction_winner:
