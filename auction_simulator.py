@@ -31,8 +31,12 @@ class AuctionSimulator:
         self.auction_results = {}
         self.market_price_developments = []
 
+        #self.bid_increase_factor = np.linspace(1, 1.1, num=self.number_of_buyers)
+        #self.bid_decrease_factor = np.linspace(1, 0.9, num=self.number_of_buyers)
         self.bid_increase_factor = np.random.rand(self.number_of_buyers) * 0.1 + 1
         self.bid_decrease_factor = 1 - np.random.rand(self.number_of_buyers) * 0.1
+        #print(self.bid_decrease_factor)
+        #print(self.bid_increase_factor)
 
 
     def run_auctions(self):
@@ -297,5 +301,13 @@ if __name__ == "__main__":
 
 
     px = sns.lineplot(x='Rounds', y='Variance of Buyer Prices', hue='Seller', data=pd.DataFrame(price_variance, columns=['Variance of Buyer Prices', 'Rounds', 'Seller']))
+
+    ls = price_variance[(auction_simulator.number_of_auctions*auction_simulator.number_of_rounds-auction_simulator.number_of_auctions):auction_simulator.number_of_auctions*auction_simulator.number_of_rounds]
+    m = np.mean(ls, axis=0)
+    s_profits = np.mean(auction_simulator.seller_profits)
+    b_profits = np.mean(auction_simulator.buyer_profits)
+    print(m)
+    print(b_profits)
+    print(s_profits)
 
     plt.show()
