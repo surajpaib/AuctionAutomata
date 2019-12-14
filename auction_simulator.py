@@ -348,8 +348,8 @@ if __name__ == "__main__":
 
     plt.figure()
 
-    px = sns.lineplot(x='Rounds', y='Variance of Buyer Prices', hue='Seller', data=pd.DataFrame(
-        price_variance, columns=['Variance of Buyer Prices', 'Rounds', 'Seller']))
+    px = sns.lineplot(x='Rounds', y='Variance of Bids', hue='Seller', data=pd.DataFrame(
+        price_variance, columns=['Variance of Bids', 'Rounds', 'Seller']))
 
     ls = price_variance[(auction_simulator.number_of_auctions*auction_simulator.number_of_rounds -
                          auction_simulator.number_of_auctions):auction_simulator.number_of_auctions*auction_simulator.number_of_rounds]
