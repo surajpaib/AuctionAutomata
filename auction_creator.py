@@ -10,6 +10,7 @@ class AuctionCreator:
         self.N = 0
         self.R = 0
         self.Smax = 0
+        self.verbose = 0
         self.epsilon = 0.0
         self.auction_type = ['0: Pure', '1: Levelled Commitment']
         
@@ -61,6 +62,18 @@ class AuctionCreator:
                         logging.error(error)
                         logging.error("Invalid Input. Please enter a valid option value.")
                 setattr(self, attribute, input_value)
+            
+            elif type(getattr(self, attribute)) == bool:
+                while True:
+                    input_value = input("Enter the value for {} ( True prints logs, False only prints final output):".format(attribute, getattr(self, attribute)))
+                    try: 
+                        input_value = bool(input_value)
+
+                    except ValueError as error:
+                        logging.error(error)
+                        logging.error("Invalid Input. Please enter either 1 or 9 value.")
+                setattr(self, attribute, input_value)
+
 
     def create_bid_matrices(self):
         """

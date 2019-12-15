@@ -7,7 +7,6 @@ import pandas as pd
 sns.set()
 
 # Set level=None to remove display messages
-logging.basicConfig(level=logging.INFO)
 
 
 class AuctionSimulator:
@@ -35,8 +34,8 @@ class AuctionSimulator:
             self.number_of_buyers) * 0.1 + 1
         self.bid_decrease_factor = 1 - \
             np.random.rand(self.number_of_buyers) * 0.1
-        # print(self.bid_decrease_factor)
-        # print(self.bid_increase_factor)
+        # logging.info(self.bid_decrease_factor)
+        # logging.info(self.bid_increase_factor)
 
     def run_auctions(self):
         """
@@ -88,7 +87,7 @@ class AuctionSimulator:
                 # Get previous auctions won for each buyer
                 previous_auctions_won = np.argwhere(
                     self.commited_buyer_bids == True)
-                print(previous_auctions_won)
+                # logging.info(previous_auctions_won)
 
                 # Set new bids based on the bidding strategy for buyers that have won previous auctions considering the deducted penalty and profit from previous auction.
                 for buyer_index, x in previous_auctions_won:
@@ -260,8 +259,8 @@ class AuctionSimulator:
         buyers_decrease_bid = buyers_above_market_price + [auction_winner]
         buyers_increase_bid = list(
             set(buyer_indices) - set(buyers_decrease_bid))
-        print(self.bid_decrease_factor[buyers_decrease_bid]
-              * self.alpha_factors[buyers_decrease_bid, k])
+        # logging.info(self.bid_decrease_factor[buyers_decrease_bid]
+        #       * self.alpha_factors[buyers_decrease_bid, k])
         self.alpha_factors[buyers_decrease_bid, k] = self.bid_decrease_factor[buyers_decrease_bid] * \
             self.alpha_factors[buyers_decrease_bid, k]
         self.alpha_factors[buyers_increase_bid, k] = self.bid_increase_factor[buyers_increase_bid] * \
@@ -332,6 +331,12 @@ if __name__ == "__main__":
     auction_input.create_bid_matrices()
     auction_simulator = AuctionSimulator(auction_input.seller_price, auction_input.buyer_price,
                                          auction_input.alpha_factors, auction_input.epsilon, auction_input.auction_type)
+    
+    if auction_input.verbose:
+        logging.basicConfig(level=logging.INFO)
+    else:
+        logging.basicConfig(level=None)
+
     auction_simulator.run_auctions()
     # prettyprintdict(auction_simulator.auction_results)
     plt.figure()
