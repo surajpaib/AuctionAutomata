@@ -335,8 +335,8 @@ if __name__ == "__main__":
     auction_simulator.run_auctions()
     # prettyprintdict(auction_simulator.auction_results)
     plt.figure()
-    ax = sns.scatterplot(x='Rounds', y='Market Price', data=pd.DataFrame(
-        auction_simulator.market_price_developments, columns=['Market Price', 'Rounds']))
+    ax = sns.scatterplot(x='Auctions', y='Market Price', data=pd.DataFrame(
+        auction_simulator.market_price_developments, columns=['Market Price', 'Auctions']))
 
     price_variance = []
 
